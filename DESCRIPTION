@@ -1,0 +1,20 @@
+Package: trawlmetrics
+Type: Package
+Title: Trawl gear performance and geometry
+Version: 0.0.1
+Authors@R: c(person("Sean", "Rohan", email = "sean.rohan@noaa.gov", role = c("aut", "cre")))
+Description: Evaluate performance of bottom trawl gear used on GAP surveys
+License: GPL (>=2)
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 7.2.1
+Depends: R (>= 4.1),
+        ggplot2
+Imports: RODBC,
+    dplyr,
+    flextable
+Suggests: knitr,
+    rmarkdown,
+    RODBC,
+    getPass
+VignetteBuilder: knitr
