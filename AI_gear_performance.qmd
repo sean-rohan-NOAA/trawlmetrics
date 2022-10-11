@@ -1,5 +1,4 @@
 ---
-title: "Trawl report"
 format: docx
 editor: visual
 ---
@@ -7,13 +6,13 @@ editor: visual
 ```{r setup}
 #| include: false
 
+survey = "AI"
+year = 2022
+
 library(trawlmetrics)
 library(flextable)
 
 channel <- trawlmetrics:::get_connected(schema = "AFSC")
-
-survey = c("EBS", "NBS")
-year = 2022
 
 survey_id <- c(98, 143, 47, 52, 78, 6)[match(survey, c("EBS", "NBS", "GOA", "AI", "SLOPE", "CHUKCHI"))]
 
@@ -131,26 +130,12 @@ plot_dat$W75 <- trawl_dimensions_all_years$Q75_NET_WIDTH
 plot_dat$H25 <- trawl_dimensions_all_years$Q25_NET_HEIGHT
 plot_dat$H75 <- trawl_dimensions_all_years$Q75_NET_HEIGHT
 
-# Make reports for each trawl
-ii <- 13
-unique_trawls <- trawl_dimensions_year |>
-  dplyr::select(YEAR, VESSEL, NET_NUMBER)
-  
-  sel_net <- dplyr::filter(trawl_sel, 
-                YEAR == unique_trawls$YEAR[ii],
-                VESSEL == unique_trawls$VESSEL[ii],
-                NET_NUMBER == unique_trawls$NET_NUMBER[ii])
-  
-  
-  sel_net_summary <- sel_net[ii, ] |>
-    dplyr::inner_join(trawl_dimensions_year)
-
 ```
 
 ```{r}
 #| include: false
 
-png(file = here::here("plots", "trawl_height_width.png"), width = 7, height = 10, res = 600, units = "in")
+png(file = here::here("plots", "trawl_height_width.png"), width = 7, height = 9, res = 600, units = "in")
 print(
 cowplot::plot_grid(
 ggplot() +
@@ -223,36 +208,78 @@ nrow = 2)
 )
 dev.off()
 ```
+[![Figure 1. Distribution of net height and spread for all nets used during the survey (numbered nets) and for all nets with measurement data since 2005. Circles show the average, box shows 25-75% range, thin line shows full range. Labels along the vertical axis show the number of hauls for each net. Colors show whether the average for a net fell within the 25-75% range for the full 2005-present data set. ](./plots/trawl_height_width.png)](%60r%20paste0(%22Trawl%20height%20and%20width%20from%20the%20%22,%20year,%20%22%20%22,%20paste(survey,%20sep%20=%20%22%20and%20%22),%20%22survey(s).%22)%20%60)
 
-[![Distribution of net height and spread for all nets used during the survey (numbered nets) and for all nets with measurement data since 2005. Circles show the average, box shows 25-75% range, thin line shows full range. Labels along the vertical axis show the number of hauls for each net. Colors show whether the average for a net fell within the 25-75% range for the full 2005-present data set. ](./plots/trawl_height_width.png)](%60r%20paste0(%22Trawl%20height%20and%20width%20from%20the%20%22,%20year,%20%22%20%22,%20paste(survey,%20sep%20=%20%22%20and%20%22),%20%22survey(s).%22)%20%60)
 
-| Field      | Value                          | Field        | Value                                                       |
-|--------------------|------------------|------------------|------------------|
-| Net number | `r sel_net_summary$NET_NUMBER` | Good hauls   | `r sel_net_summary$N_GOOD`                                  |
-| Gear       | `r sel_net_summary$GEAR`       | Bad hauls    | `r sel_net_summary$N_BAD`                                   |
-| Year       | `r sel_net_summary$YEAR`       | Avg. Height  | `r paste0(round(sel_net_summary$MEAN_NET_HEIGHT, 1), " m")` |
-| Survey     | `r paste(survey, sep =",")`    | Avg. Spread  | `r paste0(round(sel_net_summary$MEAN_NET_WIDTH, 1), " m")`  |
-| vessel     | `r sel_net_summary$VESSEL`     | Out-of-range | NA                                                          |
+```{r setup_tables}
+#| include: false
+cat("{{< pagebreak >}}")
 
-<br>
+unique_trawls <- trawl_dimensions_year |>
+  dplyr::select(YEAR, VESSEL, NET_NUMBER) |>
+  dplyr::arrange(NET_NUMBER)
+
+tab_net_metrics <- list()
+tab_haul_history <- list()
+
+for(ii in 1:nrow(unique_trawls)) {
+  
+  sel_net <- dplyr::filter(trawl_sel, 
+                           YEAR == unique_trawls$YEAR[ii],
+                           VESSEL == unique_trawls$VESSEL[ii],
+                           NET_NUMBER == unique_trawls$NET_NUMBER[ii])
+  
+  
+  sel_net_summary <- sel_net[1, ] |>
+    dplyr::inner_join(trawl_dimensions_year)
+  
+  tab_net_metrics[[ii]] <- data.frame(Field = c("Gear", "Net number", "Year", "Survey", "Vessel", "Good hauls", "Bad hauls", "Avg. Height", "Avg. Spread", "Out of range"),
+                                Value = c(sel_net_summary$SHORT_NAME,
+                                          sel_net_summary$NET_NUMBER,
+                                          sel_net_summary$YEAR,
+                                          paste(survey, collapse =", "),
+                                          sel_net_summary$VESSEL,
+                                          sel_net_summary$N_GOOD,
+                                          sel_net_summary$N_BAD,
+                                          paste0(round(sel_net_summary$MEAN_NET_HEIGHT, 1), " m"),
+                                          paste0(round(sel_net_summary$MEAN_NET_WIDTH, 1), " m"),
+                                          NA)) |>
+    flextable::flextable(cwidth = c(2, 2)) |>
+    flextable::set_caption(caption = paste0("Net deployment summary for net number  ", unique_trawls$NET_NUMBER[ii], " during  ", year, " survey."))
+  
+  tab_haul_history[[ii]] <- sel_net |>
+    dplyr::select(START_TIME, VESSEL, CRUISE, HAUL, PERFORMANCE_DESCRIPTION) |>
+    dplyr::arrange(CRUISE, HAUL) |>
+    dplyr::mutate(START_TIME = as.Date(START_TIME),
+                  CRUISE = as.character(CRUISE)) |>
+    dplyr::rename(Date = START_TIME,
+                  Vessel = VESSEL,
+                  Cruise = CRUISE,
+                  Haul = HAUL,
+                  Performance = PERFORMANCE_DESCRIPTION) |>
+    flextable::flextable(cwidth = c(1.1, 0.7, 0.7, 0.7, 3.3)) |>
+    flextable::align(align = "left", j = c(1, 5), part = "all") |>
+    flextable::align(align = "center", j = c(2,3,4), part = "all") |>
+    flextable::set_caption(caption = paste0("Trawl performance by haul for net number ", unique_trawls$NET_NUMBER[ii], " during  ", year, " survey."))
+  
+}
+```
 
 ```{r}
+#| results: asis
 #| echo: false
+#| ft.align: left
 
-tab_haul_history <- sel_net |>
-  dplyr::select(START_TIME, VESSEL, CRUISE, HAUL, PERFORMANCE_DESCRIPTION) |>
-  dplyr::arrange(CRUISE, HAUL) |>
-  dplyr::mutate(START_TIME = as.Date(START_TIME),
-                CRUISE = as.character(CRUISE)) |>
-  dplyr::rename(Date = START_TIME,
-                Vessel = VESSEL,
-                Cruise = CRUISE,
-                Haul = HAUL,
-                Performance = PERFORMANCE_DESCRIPTION) |>
-flextable::flextable(cwidth = c(1.25, 0.75, 0.75, 0.75, 3.5)) |>
-flextable::align(align = "left", j = c(1, 5), part = "all") |>
-flextable::align(align = "center", j = c(2,3,4), part = "all")
-
-tab_haul_history
-
+for(ii in 1:nrow(unique_trawls)) {
+  cat(paste0("  \n## Net number: ", unique_trawls$NET_NUMBER[ii]))
+  cat("  \n")
+  cat("#####\n")
+  cat("  \n")
+  flextable::flextable_to_rmd(tab_net_metrics[[ii]])
+  cat("  \n")
+  cat("#####\n")
+  cat("  \n")
+  flextable::flextable_to_rmd(tab_haul_history[[ii]])
+  cat("{{< pagebreak >}}")
+}
 ```
