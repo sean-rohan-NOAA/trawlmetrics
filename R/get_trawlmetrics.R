@@ -88,7 +88,7 @@ and a.performance = f.performance")) |>
   
   
   # Summarize height and width for all nets and all years
- trawlmetrics_average <- trawl_data |>
+  trawlmetrics_average <- trawl_data |>
     dplyr::filter(NET_MEASURED == "Y") |>
     dplyr::summarise(MEAN_NET_HEIGHT = mean(NET_HEIGHT, na.rm = TRUE),
                      MIN_NET_HEIGHT = min(NET_HEIGHT, na.rm = TRUE),
