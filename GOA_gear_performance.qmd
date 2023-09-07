@@ -9,7 +9,7 @@ editor: visual
 library(trawlmetrics)
 library(flextable)
 
-survey = c("EBS", "NBS")
+survey = "GOA"
 year = 2023
 
 channel <- trawlmetrics:::get_connected(schema = "AFSC")
