@@ -39,6 +39,5 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
-
 *.docx
-/*.png
+*.png
