@@ -150,4 +150,3 @@ and a.performance = f.performance")) |>
   return(output)
   
 }
-
