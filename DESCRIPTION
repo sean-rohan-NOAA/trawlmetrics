@@ -1,7 +1,7 @@
 Package: trawlmetrics
 Type: Package
 Title: Trawl gear performance and geometry
-Version: 0.0.1
+Version: 0.0.2
 Authors@R: c(person("Sean", "Rohan", email = "sean.rohan@noaa.gov", role = c("aut", "cre")))
 Description: Evaluate performance of bottom trawl gear used on GAP surveys
 License: GPL (>=2)

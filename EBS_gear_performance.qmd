@@ -9,128 +9,10 @@ editor: visual
 library(trawlmetrics)
 library(flextable)
 
-survey = c("EBS", "NBS")
-year = 2023
-
-channel <- trawlmetrics:::get_connected(schema = "AFSC")
-
-survey_id <- c(98, 143, 47, 52, 78, 6)[match(survey, c("EBS", "NBS", "GOA", "AI", "SLOPE", "CHUKCHI"))]
-
-# Short names for trawl gear
-gear_desc_df <- data.frame(GEAR = c(44, 172),
-                           SHORT_NAME = c("83-112", "Poly Nor 'eastern"))
-
-
-# survey_standard_gear
-
-trawl_dat <- RODBC::sqlQuery(channel = channel,
-                             query =
-                               paste("select a.hauljoin, a.vessel, a.cruise, a.haul, a.net_measured, a.net_height, a.net_width, a.wire_length, a.bottom_depth, a.performance, a.gear, a.accessories,
-a.stationid, a.start_time, d.net_number, d.footrope_number, d.autotrawl_method, d.starboard_door_number, d.port_door_number, d.haul_type, e.description gear_description, f.description performance_description
-from
-racebase.haul a, 
-race_data.cruises b, 
-race_data.surveys c, 
-race_data.hauls d, 
-race_data.gear_codes e, 
-racebase.performance f
-where c.survey_definition_id in (", paste(survey_id, collapse = ","), ")",
-                                     "and b.survey_id = c.survey_id
-and a.cruisejoin = b.racebase_cruisejoin
-and d.cruise_id = b.cruise_id
-and a.haul = d.haul
-and e.gear_code = a.gear
-and a.performance = f.performance"))
-
-trawl_sel <- trawl_dat |>
-  dplyr::inner_join(gear_desc_df) |>
-  dplyr::mutate(YEAR = floor(CRUISE/100),
-                SCOPE_RATIO = WIRE_LENGTH/BOTTOM_DEPTH) |>
-  dplyr::filter(HAUL_TYPE %in% c(3, 13, 20),
-                !is.na(NET_MEASURED))
-  
-trawl_sel$TRAWL_ID <- paste(trawl_sel$YEAR, trawl_sel$VESSEL, trawl_sel$NET_NUMBER, sep = "_")
-
-
-# Scaled height and width
-net_height_scaled <- scale(trawl_sel$NET_HEIGHT)
-net_width_scaled <- scale(trawl_sel$NET_WIDTH)
-net_scope_ratio <- scale(trawl_sel$SCOPE_RATIO)
-
-trawl_sel$SCALED_NET_HEIGHT <- net_height_scaled
-trawl_sel$SCALED_NET_WIDTH <- net_width_scaled
-trawl_sel$SCALED_SCOPE_RATIO <- net_scope_ratio
-
-trawl_mat <- cbind(net_height_scaled[,1],
-                   net_width_scaled[,1],
-                   net_scope_ratio[,1])
-
-
-# Summarize height and width by trawl
-trawl_dimensions_summary <- trawl_sel |>
-  dplyr::group_by(YEAR, VESSEL, NET_NUMBER, NET_MEASURED) |>
-  dplyr::summarise(MEAN_NET_HEIGHT = mean(NET_HEIGHT, na.rm = TRUE),
-                   MIN_NET_HEIGHT = min(NET_HEIGHT, na.rm = TRUE),
-                   MAX_NET_HEIGHT = max(NET_HEIGHT, na.rm = TRUE),
-                   Q025_NET_HEIGHT = quantile(NET_HEIGHT, probs = 0.025, na.rm = TRUE),
-                   Q975_NET_HEIGHT = quantile(NET_HEIGHT, probs = 0.975, na.rm = TRUE),
-                   Q25_NET_HEIGHT = quantile(NET_HEIGHT, probs = 0.25, na.rm = TRUE),
-                   Q75_NET_HEIGHT = quantile(NET_HEIGHT, probs = 0.75, na.rm = TRUE),
-                   SD_NET_HEIGHT = sd(NET_HEIGHT, na.rm = TRUE),
-                   MEAN_NET_WIDTH = mean(NET_WIDTH, na.rm = TRUE),
-                   MIN_NET_WIDTH = min(NET_WIDTH, na.rm = TRUE),
-                   MAX_NET_WIDTH = max(NET_WIDTH, na.rm = TRUE),
-                   Q025_NET_WIDTH = quantile(NET_WIDTH, probs = 0.025, na.rm = TRUE),
-                   Q975_NET_WIDTH = quantile(NET_WIDTH, probs = 0.975, na.rm = TRUE),
-                   Q25_NET_WIDTH = quantile(NET_WIDTH, probs = 0.25, na.rm = TRUE),
-                   Q75_NET_WIDTH = quantile(NET_WIDTH, probs = 0.75, na.rm = TRUE),
-                   SD_NET_WIDTH = sd(NET_WIDTH, na.rm = TRUE)) |>
-  dplyr::inner_join(trawl_sel |>
-  dplyr::group_by(YEAR, VESSEL, NET_NUMBER) |>
-  dplyr::summarise(N_HAULS = dplyr::n(),
-                   N_GOOD = sum(PERFORMANCE >= 0, na.rm = TRUE),
-                   N_BAD = sum(PERFORMANCE < 0, na.rm = TRUE))) |>
-  dplyr::filter(NET_MEASURED == "Y")
-
-
-# Summarize height and width for all nets and all years
-trawl_dimensions_all_years <- trawl_sel |>
-  dplyr::filter(NET_MEASURED == "Y") |>
-  dplyr::summarise(MEAN_NET_HEIGHT = mean(NET_HEIGHT, na.rm = TRUE),
-                   MIN_NET_HEIGHT = min(NET_HEIGHT, na.rm = TRUE),
-                   MAX_NET_HEIGHT = max(NET_HEIGHT, na.rm = TRUE),
-                   Q025_NET_HEIGHT = quantile(NET_HEIGHT, probs = 0.025, na.rm = TRUE),
-                   Q975_NET_HEIGHT = quantile(NET_HEIGHT, probs = 0.975, na.rm = TRUE),
-                   Q25_NET_HEIGHT = quantile(NET_HEIGHT, probs = 0.25, na.rm = TRUE),
-                   Q75_NET_HEIGHT = quantile(NET_HEIGHT, probs = 0.75, na.rm = TRUE),
-                   SD_NET_HEIGHT = sd(NET_HEIGHT, na.rm = TRUE),
-                   MEAN_NET_WIDTH = mean(NET_WIDTH, na.rm = TRUE),
-                   MIN_NET_WIDTH = min(NET_WIDTH, na.rm = TRUE),
-                   MAX_NET_WIDTH = max(NET_WIDTH, na.rm = TRUE),
-                   Q025_NET_WIDTH = quantile(NET_WIDTH, probs = 0.025, na.rm = TRUE),
-                   Q975_NET_WIDTH = quantile(NET_WIDTH, probs = 0.975, na.rm = TRUE),
-                   Q25_NET_WIDTH = quantile(NET_WIDTH, probs = 0.25, na.rm = TRUE),
-                   Q75_NET_WIDTH = quantile(NET_WIDTH, probs = 0.75, na.rm = TRUE),
-                   SD_NET_WIDTH = sd(NET_WIDTH, na.rm = TRUE),
-                   N_HAULS = dplyr::n()) |>
-  dplyr::mutate(NET_NUMBER = "All nets/years")
-
-# Data frame for the year
-trawl_dimensions_year <- trawl_dimensions_summary |>
-  dplyr::filter(YEAR == year)
-
-net_number_year <- as.character(sort(unique(trawl_dimensions_year$NET_NUMBER)))
-
-plot_dat <- trawl_dimensions_year |>
-  dplyr::mutate(NET_NUMBER = as.character(NET_NUMBER)) |>
-  dplyr::bind_rows(trawl_dimensions_all_years) |>
-  dplyr::mutate(NET_NUMBER = factor(NET_NUMBER, 
-                                    levels = c(net_number_year, "All nets/years")))
-
-plot_dat$W25 <- trawl_dimensions_all_years$Q25_NET_WIDTH
-plot_dat$W75 <- trawl_dimensions_all_years$Q75_NET_WIDTH
-plot_dat$H25 <- trawl_dimensions_all_years$Q25_NET_HEIGHT
-plot_dat$H75 <- trawl_dimensions_all_years$Q75_NET_HEIGHT
+trawlmetrics_data <- get_trawlmetrics(survey = c("EBS", "NBS"), 
+                            year = 2023, 
+                            select_haul_types = c(3, 13, 20), 
+                            save_rds = FALSE) 
 
 ```
 
@@ -141,27 +23,27 @@ png(file = here::here("plots", "trawl_height_width.png"), width = 7, height = 9,
 print(
 cowplot::plot_grid(
 ggplot() +
-  geom_segment(data = plot_dat,
+  geom_segment(data = trawlmetrics_data[['plot_data']],
                mapping = aes(y = NET_NUMBER, 
                              yend = NET_NUMBER, 
                              x = MIN_NET_HEIGHT, 
                              xend = MAX_NET_HEIGHT,
                              color = MEAN_NET_HEIGHT > H25 & MEAN_NET_HEIGHT < H75)) +
-  geom_segment(data = plot_dat,
+  geom_segment(data = trawlmetrics_data[['plot_data']],
                mapping = aes(y = NET_NUMBER, 
                              yend = NET_NUMBER, 
                              x = Q25_NET_HEIGHT, 
                              xend = Q75_NET_HEIGHT,
                              color = MEAN_NET_HEIGHT > H25 & MEAN_NET_HEIGHT < H75),
                size = 3) +
-  geom_point(data = plot_dat,
+  geom_point(data = trawlmetrics_data[['plot_data']],
                mapping = aes(y = NET_NUMBER, 
                              x = MEAN_NET_HEIGHT,
                              color = MEAN_NET_HEIGHT > H25 & MEAN_NET_HEIGHT < H75),
                size = 4,
              shape = 21,
              fill = "white") +
-  geom_label(data = plot_dat,
+  geom_label(data = trawlmetrics_data[['plot_data']],
             aes(y = NET_NUMBER,
                 x = 0.8,
                 color = MEAN_NET_HEIGHT > H25 & MEAN_NET_HEIGHT < H75,
@@ -174,27 +56,27 @@ ggplot() +
   trawlmetrics::theme_pngs() +
   theme(legend.position = "none"),
 ggplot() +
-  geom_segment(data = plot_dat,
+  geom_segment(data = trawlmetrics_data[['plot_data']],
                mapping = aes(y = NET_NUMBER, 
                              yend = NET_NUMBER, 
                              x = MIN_NET_WIDTH, 
                              xend = MAX_NET_WIDTH,
                              color = MEAN_NET_WIDTH > W25 & MEAN_NET_WIDTH < W75)) +
-  geom_segment(data = plot_dat,
+  geom_segment(data = trawlmetrics_data[['plot_data']],
                mapping = aes(y = NET_NUMBER, 
                              yend = NET_NUMBER, 
                              x = Q25_NET_WIDTH, 
                              xend = Q75_NET_WIDTH,
                              color = MEAN_NET_WIDTH > W25 & MEAN_NET_WIDTH < W75),
                size = 3) +
-  geom_point(data = plot_dat,
+  geom_point(data = trawlmetrics_data[['plot_data']],
              mapping = aes(y = NET_NUMBER, 
                            x = MEAN_NET_WIDTH,
                            color = MEAN_NET_WIDTH > W25 & MEAN_NET_WIDTH < W75),
              size = 4,
              shape = 21,
              fill = "white") +
-  geom_label(data = plot_dat,
+  geom_label(data = trawlmetrics_data[['plot_data']],
              aes(y = NET_NUMBER,
                  x = 10,
                  color = MEAN_NET_WIDTH > W25 & MEAN_NET_WIDTH < W75,
@@ -217,7 +99,7 @@ dev.off()
 #| include: false
 cat("{{< pagebreak >}}")
 
-unique_trawls <- trawl_dimensions_year |>
+unique_trawls <- trawlmetrics_data[['trawlmetrics_survey']] |>
   dplyr::select(YEAR, VESSEL, NET_NUMBER) |>
   dplyr::arrange(NET_NUMBER)
 
@@ -226,20 +108,20 @@ tab_haul_history <- list()
 
 for(ii in 1:nrow(unique_trawls)) {
   
-  sel_net <- dplyr::filter(trawl_sel, 
+  sel_net <- dplyr::filter(trawlmetrics_data[['trawl_data']], 
                            YEAR == unique_trawls$YEAR[ii],
                            VESSEL == unique_trawls$VESSEL[ii],
                            NET_NUMBER == unique_trawls$NET_NUMBER[ii])
   
   
   sel_net_summary <- dplyr::filter(sel_net, NET_MEASURED == "Y")[1,] |>
-    dplyr::inner_join(trawl_dimensions_year)
+    dplyr::inner_join(trawlmetrics_data[['trawlmetrics_survey']])
   
   tab_net_metrics[[ii]] <- data.frame(Field = c("Gear", "Net number", "Year", "Survey", "Vessel", "Good hauls", "Bad hauls", "Avg. Height", "Avg. Spread", "Out of range"),
                                 Value = c(sel_net_summary$SHORT_NAME,
                                           sel_net_summary$NET_NUMBER,
                                           sel_net_summary$YEAR,
-                                          paste(survey, collapse =", "),
+                                          paste(trawlmetrics_data[['survey']], collapse =", "),
                                           sel_net_summary$VESSEL,
                                           sel_net_summary$N_GOOD,
                                           sel_net_summary$N_BAD,
@@ -247,7 +129,7 @@ for(ii in 1:nrow(unique_trawls)) {
                                           paste0(round(sel_net_summary$MEAN_NET_WIDTH, 1), " m"),
                                           NA)) |>
     flextable::flextable(cwidth = c(2, 2)) |>
-    flextable::set_caption(caption = paste0("Net deployment summary for net number  ", unique_trawls$NET_NUMBER[ii], " during  ", year, " survey."))
+    flextable::set_caption(caption = paste0("Net deployment summary for net number  ", unique_trawls$NET_NUMBER[ii], " during  ", trawlmetrics_data[['year']], " survey."))
   
   tab_haul_history[[ii]] <- sel_net |>
     dplyr::select(START_TIME, VESSEL, CRUISE, HAUL, PERFORMANCE_DESCRIPTION) |>
@@ -262,7 +144,7 @@ for(ii in 1:nrow(unique_trawls)) {
     flextable::flextable(cwidth = c(1.1, 0.7, 0.7, 0.7, 3.3)) |>
     flextable::align(align = "left", j = c(1, 5), part = "all") |>
     flextable::align(align = "center", j = c(2,3,4), part = "all") |>
-    flextable::set_caption(caption = paste0("Trawl performance by haul for net number ", unique_trawls$NET_NUMBER[ii], " during  ", year, " survey."))
+    flextable::set_caption(caption = paste0("Trawl performance by haul for net number ", unique_trawls$NET_NUMBER[ii], " during  ", trawlmetrics_data[['year']], " survey."))
   
 }
 ```
