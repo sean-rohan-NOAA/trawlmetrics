@@ -6,7 +6,7 @@ environ <- function() {
   
   envdat <- RODBC::sqlQuery(channel = channel,
                              query = "SELECT s.YEAR, u.HAUL_ID, u.NET_NUMBER, u.STRATUM, u.STATION, u.WAVE_HEIGHT, u.SWELL_HEIGHT, u.SWELL_DIRECTION, 
-u.CURRENT_SPEED, u.CURRENT_DIRECTION, u.BOTTOM_TYPE, u.STEEPNESS
+u.CURRENT_SPEED, u.CURRENT_DIRECTION, u.STEEPNESS
 from
 RACE_DATA.HAULS u, RACE_DATA.CRUISES c, RACE_DATA.SURVEYS s
 where c.CRUISE_ID = u.CRUISE_ID
