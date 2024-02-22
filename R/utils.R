@@ -4,7 +4,7 @@
 #'
 #' @param schema Data source name (DSN) as a character vector.
 #' @return An RODBC class ODBC connection.
-#' @noRd
+#' @export
 
 get_connected <- function(channel = NULL, schema = NA){
   if(is.null(channel)) {
