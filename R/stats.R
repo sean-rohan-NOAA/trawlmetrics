@@ -1,6 +1,7 @@
 library(dplyr)
 install.packages(lme4)
 library(lme4)
+library(Matrix)
 
 xstat <- bottom_contact_data %>% group_by(HAUL_ID) %>% summarize(min = min(X_AXIS),
                                               q1 = quantile(X_AXIS, 0.25),
@@ -22,11 +23,18 @@ zstat <- bottom_contact_data %>% group_by(HAUL_ID) %>% summarize(min = min(Z_AXI
                                                         mean = mean(Z_AXIS),
                                                         q3 = quantile(Z_AXIS, 0.75),
                                                         max = max(Z_AXIS))
+zstat <- zstat %>% rename(min.z = min,
+                          q1.z = q1,
+                      median.z = median,
+                        mean.z = mean,
+                          q3.z = q3,
+                          max.z = max)
 
 stats <- merge(xstat, ystat, by="HAUL_ID")
 stats <- merge (stats, zstat, by="HAUL_ID")
 
-bcs_lmer = lmer(mean.x ~ (1|STATION), data = full)
+
+bcs_lmer = lmer(mean.z + (1|STATION) + NET_NUMBER, data = full)
 
 summary(bcs_lmer)
 
