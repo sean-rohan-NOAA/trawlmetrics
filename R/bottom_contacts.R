@@ -1,3 +1,7 @@
+library(trawlmetrics)
+library(lubridate)
+library(dplyr)
+
 bottom_contacts <- function() {
   
   dir.create(here::here("data"))
@@ -7,7 +11,8 @@ bottom_contacts <- function() {
   bc <- RODBC::sqlQuery(channel = channel,
                                query = "SELECT b.DATE_TIME, h.BOTTOM_CONTACT_HEADER_ID, b.X_AXIS, b.Y_AXIS, b.Z_AXIS
 from
-RACE_DATA.BOTTOM_CONTACTS b, RACE_DATA.BOTTOM_CONTACT_HEADERS h, RACE_DATA.HAULS u, RACE_DATA.CRUISES c, RACE_DATA.SURVEYS s
+RACE_DATA.BOTTOM_CONTACTS b, RACE_DATA.BOTTOM_CONTACT_HEADERS h, RACE_DATA.HAULS u, RACE_DATA.CRUISES c, 
+RACE_DATA.SURVEYS s
 where
 h.BOTTOM_CONTACT_HEADER_ID = b.BOTTOM_CONTACT_HEADER_ID
 AND h.HAUL_ID = u.HAUL_ID
@@ -21,10 +26,10 @@ and X_AXIS IS NOT NULL
 ORDER BY b.BOTTOM_CONTACT_HEADER_ID, b.DATE_TIME ASC
 ")
 
-  saveRDS(object = bc, file = here::here("data", "bc_survey.rds"))
-
-
+  lubridate::force_tz(bc$DATE_TIME, tz = "America/Anchorage")
   
+  saveRDS(object = bc, file = here::here("data", "contact_dat.rds"))
+
   output <- bc
 
   
@@ -33,6 +38,4 @@ ORDER BY b.BOTTOM_CONTACT_HEADER_ID, b.DATE_TIME ASC
 }
 
 contact_dat <- bottom_contacts()
-lubridate::force_tz(contact_dat$DATE_TIME, tz = "America/Anchorage")
-merged <- merge(contact_dat,dat_full, by="BOTTOM_CONTACT_HEADER_ID")
-bottom_contact_data <- merged[which(merged$DATE_TIME >= merged$ONBOTTOM & merged$DATE_TIME <= merged$OFFBOTTOM),]
+

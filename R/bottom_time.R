@@ -1,8 +1,10 @@
 library(trawlmetrics)
 library(lubridate)
 library(dplyr)
+library(lme4)
+library(Matrix)
 
-bottomtime <- function() {
+bottom_data <- function() {
   
   dir.create(here::here("data"))
   
@@ -35,53 +37,86 @@ AND e.EVENT_TYPE_ID = 7
 AND s.survey_definition_ID in (98, 143)
 AND s.YEAR >= 2010
 ORDER BY e.HAUL_ID, e.EVENT_TYPE_ID")
-  
-  
-  saveRDS(object = onbottom, file = here::here("data", "onbottom.rds"))
-  
-  saveRDS(object = offbottom, file = here::here("data", "offbottom.rds"))
-  
-  output <- merge(onbottom,offbottom, by ="HAUL_ID")
-
-  
-  
-  return(output)
-  
-}
-
-headerlabel <- function() {
-  
-  dir.create(here::here("data"))
-  
-  channel <- trawlmetrics:::get_connected(schema = "AFSC")
+                  
+          bottom_time <- merge(onbottom,offbottom, by ="HAUL_ID")
   
   headers <- RODBC::sqlQuery(channel = channel,
-                             query = "SELECT
-b.BOTTOM_CONTACT_HEADER_ID, b.HAUL_ID
+                             query = "SELECT b.BOTTOM_CONTACT_HEADER_ID, b.HAUL_ID
 from
 RACE_DATA.BOTTOM_CONTACT_HEADERS b
 WHERE b.HAUL_ID > 6119
 ORDER BY BOTTOM_CONTACT_HEADER_ID ASC")
+          
   
+  envdat <- RODBC::sqlQuery(channel = channel,
+                            query = "SELECT s.YEAR, u.HAUL_ID, u.NET_NUMBER, u.STRATUM, u.STATION, 
+                            u.WAVE_HEIGHT, u.SWELL_HEIGHT, u.SWELL_DIRECTION, 
+                            u.CURRENT_SPEED, u.CURRENT_DIRECTION, u.STEEPNESS
+from
+RACE_DATA.HAULS u, RACE_DATA.CRUISES c, RACE_DATA.SURVEYS s
+where c.CRUISE_ID = u.CRUISE_ID
+AND s.SURVEY_ID = c.SURVEY_ID
+AND s.survey_definition_ID in (98, 143)
+AND s.YEAR >= 2010")
   
+  dat <- merge(headers,bottom_time,by="HAUL_ID")
   
-  saveRDS(object = headers, file = here::here("data", "headers.rds"))
+  dat <- dat %>% rename(ONBOTTOM = DATE_TIME.x, 
+                        OFFBOTTOM = DATE_TIME.y)
   
+  lubridate::force_tz(dat$ONBOTTOM, tz = "America/Anchorage")
+  force_tz(dat$OFFBOTTOM, tz = "America/Anchorage")
   
-  output <- headers
+  allcontacts <- merge(dat,contact_dat, by="BOTTOM_CONTACT_HEADER_ID")
   
+  BCS_data <- allcontacts[which(allcontacts$DATE_TIME >= allcontacts$ONBOTTOM & 
+                                    allcontacts$DATE_TIME <= allcontacts$OFFBOTTOM),]
+  
+
+xstat <- BCS_data %>% group_by(HAUL_ID) %>% summarize(min = min(X_AXIS),
+                                                                   q1 = quantile(X_AXIS, 0.25),
+                                                                   median = median(X_AXIS),
+                                                                   mean = mean(X_AXIS),
+                                                                   q3 = quantile(X_AXIS, 0.75),
+                                                                   max = max(X_AXIS))
+  
+ystat <- BCS_data %>% group_by(HAUL_ID) %>% summarize(min = min(Y_AXIS),
+                                                                   q1 = quantile(Y_AXIS, 0.25),
+                                                                   median = median(Y_AXIS),
+                                                                   mean = mean(Y_AXIS),
+                                                                   q3 = quantile(Y_AXIS, 0.75),
+                                                                   max = max(Y_AXIS))
+  
+zstat <- BCS_data %>% group_by(HAUL_ID) %>% summarize(min = min(Z_AXIS),
+                                                                   q1 = quantile(Z_AXIS, 0.25),
+                                                                   median = median(Z_AXIS),
+                                                                   mean = mean(Z_AXIS),
+                                                                   q3 = quantile(Z_AXIS, 0.75),
+                                                                   max = max(Z_AXIS))
+
+zstat <- zstat %>% rename(min.z = min, q1.z = q1, median.z = median, mean.z = mean, q3.z = q3, max.z = max)
+  
+stats <- merge(xstat, ystat, by="HAUL_ID")
+stats <- merge (stats, zstat, by="HAUL_ID")
+
+full <- merge(envdat, stats, by="HAUL_ID")
+
+saveRDS(object = full, file = here::here("data", "contact_dataset.rds"))
+
+output <- full
   
   return(output)
   
 }
 
-header <- headerlabel()
-dat <- bottomtime()
+BCS_data <- bottom_data()
 
-dat_full <- merge (header,dat,by="HAUL_ID")
 
-dat_full <- dat_full %>% rename(ONBOTTOM = DATE_TIME.x, 
-                    OFFBOTTOM = DATE_TIME.y)
 
-lubridate::force_tz(dat_full$ONBOTTOM, tz = "America/Anchorage")
-force_tz(dat_full$OFFBOTTOM, tz = "America/Anchorage")
+
+bcs_lmer = lmer(mean.z + (1|STATION) + NET_NUMBER, data = full)
+
+summary(bcs_lmer)
+
+
+
