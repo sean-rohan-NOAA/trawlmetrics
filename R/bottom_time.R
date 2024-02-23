@@ -4,7 +4,7 @@ library(dplyr)
 library(lme4)
 library(Matrix)
 
-bottomdata <- function() {
+bottom_data <- function() {
   
   dir.create(here::here("data"))
   
@@ -41,8 +41,7 @@ ORDER BY e.HAUL_ID, e.EVENT_TYPE_ID")
           bottom_time <- merge(onbottom,offbottom, by ="HAUL_ID")
   
   headers <- RODBC::sqlQuery(channel = channel,
-                             query = "SELECT
-b.BOTTOM_CONTACT_HEADER_ID, b.HAUL_ID
+                             query = "SELECT b.BOTTOM_CONTACT_HEADER_ID, b.HAUL_ID
 from
 RACE_DATA.BOTTOM_CONTACT_HEADERS b
 WHERE b.HAUL_ID > 6119
@@ -60,31 +59,35 @@ AND s.SURVEY_ID = c.SURVEY_ID
 AND s.survey_definition_ID in (98, 143)
 AND s.YEAR >= 2010")
   
-  dat <- merge (headers,bottom_time,by="HAUL_ID")
+  dat <- merge(headers,bottom_time,by="HAUL_ID")
   
   dat <- dat %>% rename(ONBOTTOM = DATE_TIME.x, 
                         OFFBOTTOM = DATE_TIME.y)
   
   lubridate::force_tz(dat$ONBOTTOM, tz = "America/Anchorage")
   force_tz(dat$OFFBOTTOM, tz = "America/Anchorage")
- 
-  data <- merge (envdat,dat,by="HAUL_ID")
+  
+  allcontacts <- merge(dat,contact_dat, by="BOTTOM_CONTACT_HEADER_ID")
+  
+  BCS_data <- allcontacts[which(allcontacts$DATE_TIME >= allcontacts$ONBOTTOM & 
+                                    allcontacts$DATE_TIME <= allcontacts$OFFBOTTOM),]
+  
 
-xstat <- bottom_contact_data %>% group_by(HAUL_ID) %>% summarize(min = min(X_AXIS),
+xstat <- BCS_data %>% group_by(HAUL_ID) %>% summarize(min = min(X_AXIS),
                                                                    q1 = quantile(X_AXIS, 0.25),
                                                                    median = median(X_AXIS),
                                                                    mean = mean(X_AXIS),
                                                                    q3 = quantile(X_AXIS, 0.75),
                                                                    max = max(X_AXIS))
   
-ystat <- bottom_contact_data %>% group_by(HAUL_ID) %>% summarize(min = min(Y_AXIS),
+ystat <- BCS_data %>% group_by(HAUL_ID) %>% summarize(min = min(Y_AXIS),
                                                                    q1 = quantile(Y_AXIS, 0.25),
                                                                    median = median(Y_AXIS),
                                                                    mean = mean(Y_AXIS),
                                                                    q3 = quantile(Y_AXIS, 0.75),
                                                                    max = max(Y_AXIS))
   
-zstat <- bottom_contact_data %>% group_by(HAUL_ID) %>% summarize(min = min(Z_AXIS),
+zstat <- BCS_data %>% group_by(HAUL_ID) %>% summarize(min = min(Z_AXIS),
                                                                    q1 = quantile(Z_AXIS, 0.25),
                                                                    median = median(Z_AXIS),
                                                                    mean = mean(Z_AXIS),
@@ -96,7 +99,9 @@ zstat <- zstat %>% rename(min.z = min, q1.z = q1, median.z = median, mean.z = me
 stats <- merge(xstat, ystat, by="HAUL_ID")
 stats <- merge (stats, zstat, by="HAUL_ID")
 
-full <- merge(data, stats, by="HAUL_ID")
+full <- merge(envdat, stats, by="HAUL_ID")
+
+saveRDS(object = full, file = here::here("data", "contact_dataset.rds"))
 
 output <- full
   
@@ -104,10 +109,7 @@ output <- full
   
 }
 
-full <- bottomdata()
-
-
-
+BCS_data <- bottom_data()
 
 
 
