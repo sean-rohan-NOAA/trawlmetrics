@@ -113,10 +113,3 @@ BCS_data <- bottom_data()
 
 
 
-
-bcs_lmer = lmer(mean.z + (1|STATION) + NET_NUMBER, data = full)
-
-summary(bcs_lmer)
-
-
-
