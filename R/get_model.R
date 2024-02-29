@@ -2,9 +2,10 @@
 #'
 #' A function.
 #' 
-#' @param channel Optional. An RODBC class ODBC connection
-#' @param BCS_data Bottom contact dataframe output by get_bottom_data()
+#' @param BCS_data Bottom contact dataframe output of get_bottom_data()
 #' @export
+
+get_model <- function() {
 
 numeric_data <- BCS_data[, sapply(BCS_data, is.numeric)]
 scaled_numeric_data <- scale(numeric_data)
@@ -20,7 +21,12 @@ plot(residuals(bcs_lmer))
 qqnorm(residuals(bcs_lmer))
 qqline(residuals(bcs_lmer))
 
-plot(bcs_lmer)
-vif(bcs_lmer)
+
+output <- bcs_lmer
+
+
+return(output)
+
+}
 
 

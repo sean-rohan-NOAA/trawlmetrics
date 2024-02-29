@@ -3,7 +3,7 @@
 #' A function.
 #' 
 #' @param channel Optional. An RODBC class ODBC connection
-#' @param contact_dat Bottom contact dataframe output by get_bottom_contacts()
+#' @param contact_dat Bottom contact dataframe output by get_bottom_data()
 #' @export
 
 get_bottom_data <- function(channel = NULL, contact_dat) {
