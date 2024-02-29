@@ -1,12 +1,12 @@
 #' Get bottom contact summary stats
 #'
-#' A function.
+#' A function that builds a dataframe from BCS contacts.
 #' 
 #' @param channel Optional. An RODBC class ODBC connection
-#' @param contact_dat Bottom contact dataframe output by get_bottom_data()
+#' @param contact_dat Bottom contact dataframe output by get_bottom_contacts()
 #' @export
 
-get_bottom_data <- function(channel = NULL, contact_dat) {
+get_bottom_data <- function(channel = NULL, contact_dat = contact_dat) {
   
   dir.create(here::here("data"))
   
@@ -61,47 +61,47 @@ AND s.SURVEY_ID = c.SURVEY_ID
 AND s.survey_definition_ID in (98, 143)
 AND s.YEAR >= 2010")
   
-  dat <- merge(headers,bottom_time,by="HAUL_ID")
+  dat <- merge(headers, bottom_time, by = "HAUL_ID")
   
-  dat <- dat |> rename(ONBOTTOM = DATE_TIME.x, 
-                        OFFBOTTOM = DATE_TIME.y)
+  names(dat)[names(dat) == "DATE_TIME.x"] <- "ONBOTTOM"
+  names(dat)[names(dat) == "DATE_TIME.y"] <- "OFFBOTTOM"
   
   lubridate::force_tz(dat$ONBOTTOM, tz = "America/Anchorage")
   force_tz(dat$OFFBOTTOM, tz = "America/Anchorage")
   
-  allcontacts <- merge(dat,contact_dat, by="BOTTOM_CONTACT_HEADER_ID")
+  allcontacts <- merge(dat, contact_dat, by = "BOTTOM_CONTACT_HEADER_ID")
   
   BCS_data <- allcontacts[which(allcontacts$DATE_TIME >= allcontacts$ONBOTTOM & 
                                   allcontacts$DATE_TIME <= allcontacts$OFFBOTTOM),]
   
   
-  xstat <- BCS_data |> group_by(HAUL_ID) |> summarize(min = min(X_AXIS),
+  xstat <- BCS_data |> group_by(HAUL_ID) |> dplyr::summarize(min = min(X_AXIS),
                                                         q1 = quantile(X_AXIS, 0.25),
                                                         median = median(X_AXIS),
                                                         mean = mean(X_AXIS),
                                                         q3 = quantile(X_AXIS, 0.75),
                                                         max = max(X_AXIS))
   
-  ystat <- BCS_data |> group_by(HAUL_ID) |> summarize(min = min(Y_AXIS),
+  ystat <- BCS_data |> group_by(HAUL_ID) |> dplyr::summarize(min = min(Y_AXIS),
                                                         q1 = quantile(Y_AXIS, 0.25),
                                                         median = median(Y_AXIS),
                                                         mean = mean(Y_AXIS),
                                                         q3 = quantile(Y_AXIS, 0.75),
                                                         max = max(Y_AXIS))
   
-  zstat <- BCS_data |> group_by(HAUL_ID) |> summarize(min = min(Z_AXIS),
+  zstat <- BCS_data |> group_by(HAUL_ID) |> dplyr::summarize(min = min(Z_AXIS),
                                                         q1 = quantile(Z_AXIS, 0.25),
                                                         median = median(Z_AXIS),
                                                         mean = mean(Z_AXIS),
                                                         q3 = quantile(Z_AXIS, 0.75),
                                                         max = max(Z_AXIS))
   
-  zstat <- zstat |> rename(min.z = min, q1.z = q1, median.z = median, mean.z = mean, q3.z = q3, max.z = max)
+  zstat <- zstat |> dplyr::rename(min.z = min, q1.z = q1, median.z = median, mean.z = mean, q3.z = q3, max.z = max)
   
-  stats <- merge(xstat, ystat, by="HAUL_ID")
-  stats <- merge (stats, zstat, by="HAUL_ID")
+  stats <- merge(xstat, ystat, by = "HAUL_ID")
+  stats <- merge (stats, zstat, by = "HAUL_ID")
   
-  full <- merge(envdat, stats, by="HAUL_ID")
+  full <- merge(envdat, stats, by = "HAUL_ID")
   
   full$YEAR <- as.factor(full$YEAR)
   full$HAUL_ID <- as.factor(full$HAUL_ID)

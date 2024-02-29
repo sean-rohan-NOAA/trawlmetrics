@@ -1,11 +1,11 @@
 #' Get individual bottom contacts
 #'
-#' A function.
+#' A function extracting BCS data from RACEBASE.
 #' 
 #' @param channel Optional. An RODBC class ODBC connection
 #' @export
 
-bottom_contacts <- function(channel = NULL) {
+get_bottom_contacts <- function(channel = NULL) {
   
   dir.create(here::here("data"))
   
@@ -39,5 +39,3 @@ ORDER BY b.BOTTOM_CONTACT_HEADER_ID, b.DATE_TIME ASC
   return(output)
   
 }
-
-contact_dat <- bottom_contacts()

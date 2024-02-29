@@ -4,11 +4,13 @@
 \alias{get_bottom_data}
 \title{Get bottom contact summary stats}
 \usage{
-get_bottom_data(channel = NULL)
+get_bottom_data(channel = NULL, contact_dat = contact_dat)
 }
 \arguments{
 \item{channel}{Optional. An RODBC class ODBC connection}
+
+\item{contact_dat}{Bottom contact dataframe output by get_bottom_contacts()}
 }
 \description{
-A function.
+A function that builds a dataframe from BCS contacts.
 }

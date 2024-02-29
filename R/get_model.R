@@ -15,18 +15,10 @@ head(scaled_data)
 
 bcs_lmer <- lmer(median.z ~ NET_NUMBER*YEAR + mean.x + (1|STATION), data = scaled_data)
 
-summary(bcs_lmer)
-
-plot(residuals(bcs_lmer))
-qqnorm(residuals(bcs_lmer))
-qqline(residuals(bcs_lmer))
-
-
 output <- bcs_lmer
 
 
 return(output)
 
 }
-
 
