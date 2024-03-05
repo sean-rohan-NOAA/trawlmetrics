@@ -2,7 +2,7 @@
 #'
 #' A function that accepts a data source name, username, and password to establish returns an Oracle DataBase Connection (ODBC) as an RODBC class in R.
 #'
-#' @param schema Data source name (DSN) as a character vector.
+#' @param schema Data source name (DSN) as a character vector
 #' @return An RODBC class ODBC connection.
 #' @export
 

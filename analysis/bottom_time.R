@@ -4,7 +4,7 @@ library(dplyr)
 library(lme4)
 library(Matrix)
 
-bottom_data <- function() {
+get_bottom_data <- function() {
   
   dir.create(here::here("data"))
   
@@ -101,6 +101,12 @@ stats <- merge (stats, zstat, by="HAUL_ID")
 
 full <- merge(envdat, stats, by="HAUL_ID")
 
+full$YEAR <- as.factor(full$YEAR)
+full$HAUL_ID <- as.factor(full$HAUL_ID)
+full$NET_NUMBER <- as.factor(full$NET_NUMBER)
+full$STRATUM <- as.factor(full$STRATUM)
+full$STATION <- as.factor(full$STATION)
+
 saveRDS(object = full, file = here::here("data", "contact_dataset.rds"))
 
 output <- full
@@ -109,14 +115,7 @@ output <- full
   
 }
 
-BCS_data <- bottom_data()
-
-
-
-
-bcs_lmer = lmer(mean.z + (1|STATION) + NET_NUMBER, data = full)
-
-summary(bcs_lmer)
+BCS_data <- get_bottom_data()
 
 
 

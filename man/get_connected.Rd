@@ -7,7 +7,7 @@
 get_connected(channel = NULL, schema = NA)
 }
 \arguments{
-\item{schema}{Data source name (DSN) as a character vector.}
+\item{schema}{Data source name (DSN) as a character vector}
 }
 \value{
 An RODBC class ODBC connection.

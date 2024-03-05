@@ -9,7 +9,7 @@ Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.3.0
 Depends: R (>= 4.1),
-        ggplot2
+        ggplot2, lubridate, lme4
 Imports: RODBC,
     dplyr,
     flextable
