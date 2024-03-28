@@ -111,6 +111,9 @@ AND s.YEAR >= 2010")
   
   full$NET_YEAR <- paste(full$YEAR, full$NET_NUMBER, sep = "-")
   
+  full %>%  filter(!is.na(NET_NUMBER))
+  full %>%  filter(!is.na(STATION))
+  
   saveRDS(object = full, file = here::here("data", "contact_dataset.rds"))
   
   output <- full
