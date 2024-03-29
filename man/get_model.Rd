@@ -4,7 +4,7 @@
 \alias{get_model}
 \title{Build a mixed model}
 \usage{
-get_model()
+get_model(BCS_data = BCS_data)
 }
 \arguments{
 \item{BCS_data}{Bottom contact dataframe output of get_bottom_data()}
