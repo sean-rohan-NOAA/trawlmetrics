@@ -74,7 +74,6 @@ AND s.YEAR >= 2010")
   BCS_data <- allcontacts[which(allcontacts$DATE_TIME >= allcontacts$ONBOTTOM & 
                                   allcontacts$DATE_TIME <= allcontacts$OFFBOTTOM),]
   
-  
   xstat <- BCS_data |> group_by(HAUL_ID) |> dplyr::summarize(min = min(X_AXIS),
                                                         q1 = quantile(X_AXIS, 0.25),
                                                         median = median(X_AXIS),
@@ -111,10 +110,13 @@ AND s.YEAR >= 2010")
   
   full$NET_YEAR <- paste(full$YEAR, full$NET_NUMBER, sep = "-")
   
-  full %>%  filter(!is.na(NET_NUMBER))
-  full %>%  filter(!is.na(STATION))
+  full <- full %>%  filter(!is.na(NET_NUMBER))
+  full <- full %>%  filter(!is.na(STATION))
+  full <- full %>%  filter(!is.na(STATION))
   
-  saveRDS(object = full, file = here::here("data", "contact_dataset.rds"))
+  full <- full %>%  filter(between(median.x, -2, 2))
+  
+  saveRDS(object = full, file = here::here("data", "BCS_data.rds"))
   
   output <- full
   
