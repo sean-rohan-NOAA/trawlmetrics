@@ -51,9 +51,7 @@ ORDER BY BOTTOM_CONTACT_HEADER_ID ASC")
   
   
   envdat <- RODBC::sqlQuery(channel = channel,
-                            query = "SELECT s.YEAR, u.HAUL_ID, u.NET_NUMBER, u.STRATUM, u.STATION, 
-                            u.WAVE_HEIGHT, u.SWELL_HEIGHT, u.SWELL_DIRECTION, 
-                            u.CURRENT_SPEED, u.CURRENT_DIRECTION, u.STEEPNESS
+                            query = "SELECT s.YEAR, u.HAUL_ID, u.NET_NUMBER, u.STRATUM, u.STATION
 from
 RACE_DATA.HAULS u, RACE_DATA.CRUISES c, RACE_DATA.SURVEYS s
 where c.CRUISE_ID = u.CRUISE_ID
@@ -71,8 +69,8 @@ AND s.YEAR >= 2010")
   
   allcontacts <- merge(dat, contact_dat, by = "BOTTOM_CONTACT_HEADER_ID")
   
-  BCS_data <- allcontacts[which(allcontacts$DATE_TIME >= allcontacts$ONBOTTOM & 
-                                  allcontacts$DATE_TIME <= allcontacts$OFFBOTTOM),]
+  BCS_data <- allcontacts |>
+    dplyr::filter(DATE_TIME >= ONBOTTOM, DATE_TIME <= OFFBOTTOM)
   
   xstat <- BCS_data |> group_by(HAUL_ID) |> dplyr::summarize(min = min(X_AXIS),
                                                         q1 = quantile(X_AXIS, 0.25),
@@ -113,8 +111,7 @@ AND s.YEAR >= 2010")
   full <- full %>%  filter(!is.na(NET_NUMBER))
   full <- full %>%  filter(!is.na(STATION))
   full <- full %>%  filter(!is.na(STATION))
-  
-  full <- full %>%  filter(between(median.x, -2, 2))
+  full <- full %>%  filter(between(median.x, -2.0, 2.0))
   
   saveRDS(object = full, file = here::here("data", "BCS_data.rds"))
   
