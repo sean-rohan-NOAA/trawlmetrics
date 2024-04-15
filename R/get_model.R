@@ -12,8 +12,29 @@ BCS_data <- BCS_data %>% filter(!NET_YEAR %in% c("2013-36", "2014-35", "2016-33"
 scaled_data <- BCS_data %>% mutate_at(vars(c(6:23)), scale)
 
 # Create a mixed-effects model to estimate the median x and z values for the BCS data with station as a random effect
-bcs_x <- lmer(median.x ~ NET_NUMBER:YEAR + (1|STATION), data = scaled_data)
-bcs_z <- lmer(median.z ~ NET_NUMBER:YEAR + (1|STATION), data = scaled_data) 
+bcs_x <- lmer(median.x ~ 0 + NET_NUMBER:YEAR + (1|STATION), data = scaled_data)
+bcs_z <- lmer(median.z ~ 0 + NET_NUMBER:YEAR + (1|STATION), data = scaled_data) 
+
+# Create dataframe for fixed effects mean estimates
+par_x <- fixef(bcs_x) |>
+  as.data.frame() |>
+  dplyr::rename(`Fit x` = `fixef(bcs_x)`)
+par_x$YEAR <- as.numeric(gsub(pattern = "\\D+", 
+                              replacement = "", 
+                              x = gsub(".*:","", rownames(par_x))))
+par_x$NET_NUMBER <- gsub(pattern = "\\D+", 
+                         replacement = "", 
+                         x = gsub(":.*","", rownames(par_x)))
+
+par_z <- fixef(bcs_z) |>
+  as.data.frame() |>
+  dplyr::rename(`Fit z` = `fixef(bcs_z)`)
+par_z$YEAR <- as.numeric(gsub(pattern = "\\D+", 
+                              replacement = "", 
+                              x = gsub(".*:","", rownames(par_z))))
+par_z$NET_NUMBER <- gsub(pattern = "\\D+", 
+                         replacement = "", 
+                         x = gsub(":.*","", rownames(par_z)))
 
 # Create a dataframe of each combination of year, net number
 # and station to use the above model to predict x and z BCS values
@@ -118,12 +139,14 @@ plot_all$NET_YEAR <- "ALL"
 plot_data <- merge(bottomcontact_netyear, bottomcontact_fit, by = 'NET_YEAR', all = TRUE)
 plot_data = subset(plot_data, select = -c(NET_NUMBER.y, YEAR.y) )
 plot_data <- plot_data |> dplyr::rename(NET_NUMBER = NET_NUMBER.x, YEAR = YEAR.x)
-plotdata_all <- rbind(plot_data, plot_all)
+plotdata <- rbind(plot_data, plot_all)
 
 # Output list including both models and plot dataset
 output <- list(bcs_x = bcs_x,
                bcs_z = bcs_z,
-               plotdata_all = plotdata_all)
+               plotdata = plotdata,
+               par_x = par_x,
+               par_z = par_z)
 
 
 return(output)
