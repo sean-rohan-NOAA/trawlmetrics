@@ -27,7 +27,7 @@ scalefit <- BCS_data |> dplyr::summarise(MEAN_median.x = mean(median.x, na.rm = 
                                     SD_median.x = sd(median.x, na.rm = TRUE),
                                     MEAN_median.z = mean(median.z, na.rm = TRUE),
                                     SD_median.z = sd(median.z, na.rm = TRUE))
-fit$fit_x <- fit$fit_z*scalefit$SD_median.x + scalefit$MEAN_median.x
+fit$fit_x <- fit$fit_x*scalefit$SD_median.x + scalefit$MEAN_median.x
 fit$fit_z <- fit$fit_z*scalefit$SD_median.z + scalefit$MEAN_median.z
 
 # Summarize bottom contact by net_number and year
